@@ -1,10 +1,20 @@
 /**
-ServeHTTP中将messageChan给b,在Start中放message到b,在ServeHTTP的另外一个go goroutine中取信息
+1.Consumer: 消费者监听topic,channel.当有信息时，Consumer的consumer.AddHandler(&ConsumerHandler{b})，会调用
+  (c *ConsumerHandler) HandleMessage，将信息传给 b.messages
+
+
+2.ServeHTTP中将messageChan给b,在Start中放message到b,在ServeHTTP的另外一个go goroutine中取信息
 	1.建立长连接，messageChan := make(chan string) 空的messageChan给b.newClients
-	2.s := <-b.newClients 遍历的时候，如果发现有空的messageChan，则显示建立连接
+	2.start 函数， 采用go func + for{} => s := <-b.newClients 遍历的时候，如果发现有空的messageChan，则显示建立连接
 	3.并同时将这个空的messageChan，挂在clients map上
-	4.将message信息传给messageChan
+	4.start函数中监听 b.messages channel, 根据message的信息和clients中messageChan的key做条件对比，符合条件
+	  将 messageChan <- messages
 	5.ServeHTTP中监听messageChan channel,如果有数据就发送
+
+3.  clients    放：map  userId和messageChan,根据userId判断是否将信息 messageChan <- message
+	newClients 放messageChan， 然后将messageChan给clients，组合形成map
+	messages   放给客户端的信息
+	userId     放客户端的id，用于匹配clients中map，因为message中会有userId
 */
 //这个文件是建立长连接，然后从nsq中拿信息
 
@@ -35,42 +45,32 @@ type Broker struct {
 func (b *Broker) Start() {
 	go func() {
 		for {
-			// Block until we receive from one of the three following channels.
 			select {
 			case s := <-b.newClients:
-				// There is a new client attached and we want to start sending them messages.
 				go func() {
-					//fmt.Println("s chnanel 退出来", <-s)
 					key := <-b.userId
 					b.clients[s] = key
 				}()
 				log.Println("Added new client")
 			case s := <-b.defunctClients:
-				// A client has dettached and we want to stop sending them messages.
 				delete(b.clients, s)
 				close(s)
 				log.Println("Removed client")
 			case msg := <-b.messages:
-				// There is a new message to send.  For each attached client, push the new message
-				// into the client's message channel.
 				strategy := strings.Split(msg, ":")
 				key := strategy[0]
 				strategyInfo := strings.Split(msg, key+":")[1]
-
 				go func() {
 					len, err := redisClient.Client.LLen(key).Result()
 					if err != nil {
 						panic(err)
 					}
-					fmt.Println("----len---:", len)
-
 					for i := 0; i < int(len); i++ {
 						val, err := redisClient.Client.RPop(key).Result()
 						if err != nil {
 							panic(err)
 						}
 						for s, key := range b.clients {
-							fmt.Println("-----key--------:", key)
 							if key == val {
 								s <- strategyInfo
 							}
@@ -78,17 +78,12 @@ func (b *Broker) Start() {
 					}
 
 				}()
-				/*
-
-				 */
 				log.Printf("Broadcast message to %d clients", len(b.clients))
 			}
 		}
 	}()
 }
 
-// This Broker method handles and HTTP request at the "/events/" URL.
-//
 func (b *Broker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	fmt.Println("userId:", r.URL.Query()["userId"][0])
@@ -99,15 +94,10 @@ func (b *Broker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Streaming unsupported!", http.StatusInternalServerError)
 		return
 	}
-	// Create a new channel, over which the broker can send this client messages.
 	messageChan := make(chan string)
-	// Add this client to the map of those that should receive updates
-	fmt.Println("---messageChan---:", messageChan)
 	//将messageChan给b,在start中放message,在另外一个go goroutine中取信息
 	b.newClients <- messageChan
 	b.userId <- r.URL.Query()["userId"][0]
-
-	// Listen to the closing of the http connection via the CloseNotifier
 	notify := w.(http.CloseNotifier).CloseNotify()
 	//监听是否断开连接
 	go func() {
@@ -116,32 +106,25 @@ func (b *Broker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		b.defunctClients <- messageChan
 		log.Println("HTTP connection just closed.")
 	}()
-
-	// Set the headers related to event streaming.
 	//是建立sse的基础，设置头部信息
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
 
 	for {
-		// Read from our messageChan.
 		msg, open := <-messageChan
 		if !open {
 			// If our messageChan was closed, this means that the client has disconnected.
 			break
 		}
-		// Write to the ResponseWriter, `w`.
 		//将信息返回到客户端
 		fmt.Fprintf(w, "data: Message: %s\n\n", msg)
 		// Flush the response.  This is only possible if the repsonse supports streaming.
 		f.Flush()
 	}
-
-	// Done.
 	log.Println("Finished HTTP request at ", r.URL.Path)
 }
 
-// Handler for the main page, which we wire up to the
 // route at "/" below in `main`.
 // 返回template的Handler
 func MainPageHandler(w http.ResponseWriter, r *http.Request) {
@@ -149,15 +132,12 @@ func MainPageHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
-	// Read in the template with our SSE JavaScript code.
 	t, err := template.ParseFiles("../templates/index.html")
 	if err != nil {
 		log.Fatal("WTF dude, error parsing your template.")
 	}
-
 	// Render the template, writing to `w`.
 	t.Execute(w, "Duder")
-	// Done.
 	log.Println("Finished HTTP request at ", r.URL.Path)
 }
 
@@ -172,8 +152,9 @@ func (c *ConsumerHandler) HandleMessage(msg *nsq.Message) error {
 	return nil
 }
 
-// nsq建立连接，同时确定消费的是哪个channel
+// nsq建立连接，同时确定消费的是哪个topic,channel
 // nsq拿出数据，然后给客户端,消费者
+// 注意调用的Handler是HandleMessage，不是httpServer
 func Consumer(b *Broker) {
 	consumer, err := nsq.NewConsumer("user.strategy", "user.strategy", nsq.NewConfig())
 	if err != nil {
@@ -190,8 +171,6 @@ func Consumer(b *Broker) {
 // Main routine
 //
 func main() {
-	//router := httprouter.New()
-	// Make a new Broker instance
 	b := &Broker{
 		make(map[chan string]string),
 		make(chan (chan string)),
