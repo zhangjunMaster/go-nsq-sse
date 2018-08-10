@@ -59,24 +59,36 @@ func (b *Broker) Start() {
 			case msg := <-b.messages:
 				strategy := strings.Split(msg, ":")
 				key := strategy[0]
-				strategyInfo := strings.Split(msg, key+":")[1]
+				strategys := strings.Split(msg, key+":")
+				var strategyInfo string
+				if len(strategys) > 1 {
+					strategyInfo = strings.Split(msg, key+":")[1]
+				} else {
+					strategyInfo = strings.Split(msg, key+":")[0]
+				}
+				fmt.Println("有信息 strategyInfo:", strategyInfo)
 				go func() {
 					len, err := redisClient.Client.LLen(key).Result()
 					if err != nil {
 						panic(err)
 					}
+					fmt.Println("----key:", key)
+					fmt.Println("----len:", int(len))
 					for i := 0; i < int(len); i++ {
 						val, err := redisClient.Client.RPop(key).Result()
 						if err != nil {
 							panic(err)
 						}
 						for s, key := range b.clients {
+							fmt.Println("---key", key)
+							fmt.Println("---val:", val)
+							fmt.Println("---strategyInfo:", val)
+							//s <- strategyInfo
 							if key == val {
 								s <- strategyInfo
 							}
 						}
 					}
-
 				}()
 				log.Printf("Broadcast message to %d clients", len(b.clients))
 			}
@@ -98,6 +110,7 @@ func (b *Broker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	//将messageChan给b,在start中放message,在另外一个go goroutine中取信息
 	b.newClients <- messageChan
 	b.userId <- r.URL.Query()["userId"][0]
+
 	notify := w.(http.CloseNotifier).CloseNotify()
 	//监听是否断开连接
 	go func() {
@@ -106,11 +119,11 @@ func (b *Broker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		b.defunctClients <- messageChan
 		log.Println("HTTP connection just closed.")
 	}()
+
 	//是建立sse的基础，设置头部信息
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
-
 	for {
 		msg, open := <-messageChan
 		if !open {

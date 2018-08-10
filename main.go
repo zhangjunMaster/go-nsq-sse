@@ -28,7 +28,7 @@ func Producer() {
 				//publish的时候，分发n个topic
 				//user.strategy.14519b4e-4418-491d-8368-14278bf615e6
 				if err := producer.Publish("user.strategy", []byte(message)); err != nil {
-					fmt.Println("Publish", err)
+					fmt.Println("Publish nsq err:", err)
 					panic(err)
 				}
 			}
