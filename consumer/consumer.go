@@ -32,8 +32,7 @@ func (c *ConsumerHandler) HandleMessage(msg *nsq.Message) error {
 // nsq拿出数据，然后给客户端,消费者
 // 注意调用的Handler是HandleMessage，不是httpServer
 func Consumer(b *Broker) {
-	channels := []string{"delete.device.pc", "delete.device.mobile"}
-	for _, v := range channels {
+	for _, v := range b.ChannleTopics {
 		//b.Channles[v] = make(chan string, 10000)
 		go func(v string) {
 			consumer, err := nsq.NewConsumer(v, v, nsq.NewConfig())

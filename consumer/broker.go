@@ -1,12 +1,10 @@
 package consumer
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"strings"
-	"time"
 )
 
 type Broker struct {
@@ -16,40 +14,20 @@ type Broker struct {
 	Messages       chan string
 	UserId         chan string
 	Channles       map[string]chan string
-}
-
-type Data struct {
-	Name      string            `json:"name"`
-	Content   map[string]string `json:"content"`
-	TimeStamp time.Time         `json:"timeStamp"`
-}
-
-type Message struct {
-	EventID string `json:"eventID"`
-	Data    Data   `json:"data"`
-}
-
-func (b *Broker) pushDeleteDeivice(channelKey string, msg string, clientChannle chan string, companyUserDeviceId string) {
-	if msg != companyUserDeviceId {
-		return
-	}
-	deviceId := strings.Split(msg, "_")[2]
-	content := make(map[string]string)
-	content["deviceId"] = deviceId
-	data := Data{"removeDevice", content, time.Now()}
-	message := Message{"pushMessage", data}
-	structJson, _ := json.Marshal(message)
-	string := string(structJson)
-	fmt.Println("----message:", string)
-	clientChannle <- string
+	ChannleTopics  []string
 }
 
 // start是开启一个goroutine,遍历 b.clients这个map，一旦有message则将message给
 // b.clients中的channel
 // start是存信息到channel中
 func (b *Broker) Start() {
-	channels := []string{"delete.device.pc", "delete.device.mobile"}
-	for _, v := range channels {
+	b.ChannleTopics = []string{
+		"delete.device.pc", "delete.device.mobile",
+		"disable.user.pc", "delete.user.pc",
+		"user.strategy.pc", "client.update.pc",
+		"generalChannel.pc",
+	}
+	for _, v := range b.ChannleTopics {
 		b.Channles[v] = make(chan string, 10000)
 	}
 	go func() {
@@ -68,28 +46,9 @@ func (b *Broker) Start() {
 			}
 		}
 	}()
-	// 从channel拿数据返回成client
-	/**
-	* 遍历监听的channels
-	* 针对每个channel 遍历里面的信息，每个chanel
-	* 开一个goroutine的原因是因为里面有阻塞
-	* 用 for range循环的原因是因为，for msg := range channel 只要channel 有数据就会
-	* 一直执行，不用 再加 for {}
-	* 而其他地方没有for则是执行一遍就不执行，例如 select {} 如果没有for在最外层就是只能执行一遍
-	 */
+
 	go func() {
-		for key, channel := range b.Channles {
-			go func(channel chan string, key string) {
-				for msg := range channel {
-					fmt.Println("----key:", key, "----msg:", msg)
-					for messageChan, key := range b.Clients {
-						fmt.Println("---Clients key", key)
-						//messageChan <- msg
-						b.pushDeleteDeivice(key, msg, messageChan, key)
-					}
-				}
-			}(channel, key)
-		}
+		b.monitorChannel()
 	}()
 }
 

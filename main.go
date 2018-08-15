@@ -12,17 +12,18 @@ import (
 //nsq.NewProducer func NewProducer(addr string, config *Config) (*Producer, error)
 //Producer 是一个struct，Publish是其方法
 //1.redisClient.SubscribeMessage()
-func Producer() {
+func Producer(channels []string) {
 	producer, err := nsq.NewProducer("127.0.0.1:4150", nsq.NewConfig())
 	if err != nil {
 		fmt.Println("NewProducer", err)
 		panic(err)
 	}
 	channelMap := make(map[string]chan string)
-	channelMap["delete.device.pc"] = make(chan string, 1000)
-	channelMap["delete.device.mobile"] = make(chan string, 1000)
+	for _, v := range channels {
+		fmt.Println("----v:", v)
+		channelMap[v] = make(chan string, 1000)
+	}
 	redisClient.SubscribeMessage(channelMap)
-
 	for key, channel := range channelMap {
 		go func(key string, channel chan string) {
 			for {
@@ -41,8 +42,14 @@ func Producer() {
 	}
 }
 func main() {
+	channels := []string{
+		"delete.device.pc", "delete.device.mobile",
+		"disable.user.pc", "delete.user.pc",
+		"user.strategy.pc", "client.update.pc",
+		"generalChannel.pc",
+	}
 	//ConsumerA()
 	done := make(chan bool)
-	Producer()
+	Producer(channels)
 	<-done
 }

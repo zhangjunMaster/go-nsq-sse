@@ -46,6 +46,7 @@ func main() {
 		make(chan string),
 		make(chan string),
 		make(map[string]chan string),
+		make([]string, 0),
 	}
 	// Start processing events
 	// Start会产生一个goroutine，这个goroutine会监听各个channel的数据
