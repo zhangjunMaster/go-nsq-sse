@@ -5,12 +5,12 @@
 </head>
 <body>
 
-	Yo {{.}}, here are some facinating messages about the
+	here are some facinating Messages about the
 	current time:<br>
 
 	<script type="text/javascript">
 	    // Create a new HTML5 EventSource
-	    var source = new EventSource('/events?userId=123');
+	    var source = new EventSource('/client/v3/push/register/5ae03243a38f280f370a213a_e8b73796-e629-48ba-b7ac-2e3c163484fb_7D9A6BE2-F890-5749-ACCC-DB30C79221BC');
 	    // Create a callback for when a new message is received.
 	    source.onmessage = function(e) {
 	        // Append the `data` attribute of the message to the DOM.

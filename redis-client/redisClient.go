@@ -15,44 +15,27 @@ var Client = redis.NewClient(&redis.Options{
 
 var dat map[string]interface{}
 
-func SubscribeMessage() chan string {
-	Message := make(chan string, 1000)
-	go func() {
-		pubsub := Client.Subscribe("user.strategy")
-		defer pubsub.Close()
-		subscr, err := pubsub.ReceiveTimeout(time.Second)
-		if err != nil {
-			panic(err)
-		}
-		fmt.Println("subscr", subscr)
-		for {
-			msg, err := pubsub.ReceiveMessage()
+func SubscribeMessage(channelMap map[string]chan string) {
+	for key, channel := range channelMap {
+		go func(key string, channel chan string) {
+			pubsub := Client.Subscribe(key)
+			defer pubsub.Close()
+			subscr, err := pubsub.ReceiveTimeout(time.Second)
 			if err != nil {
-				fmt.Println("err:", err)
 				panic(err)
 			}
-			message := msg.Payload
-			fmt.Println(message)
-			/*
-				strategy := strings.Split(message, ":")
-				key := strategy[0]
-				fmt.Println("----分割后的-----", strings.Split(message, key+":"))
-				strategyInfo := strings.Split(message, key+":")[1]
-				fmt.Println("--------strategyInfo", strategyInfo)
-				byt := []byte(strategyInfo)
-				var dat map[string]interface{}
-				var strategyItem = make(map[string]interface{})
-				//解码
-				if err := json.Unmarshal(byt, &dat); err != nil {
+			fmt.Println("subscr", subscr)
+			for {
+				msg, err := pubsub.ReceiveMessage()
+				if err != nil {
+					fmt.Println("err:", err)
 					panic(err)
 				}
-				strategyItem["key"] = key
-				strategyItem["strategy"] = dat
-				fmt.Printf("%v", dat)
-			*/
-			Message <- message
-		}
-	}()
+				message := msg.Payload
+				fmt.Println(message)
+				channel <- message
+			}
+		}(key, channel)
+	}
 
-	return Message
 }

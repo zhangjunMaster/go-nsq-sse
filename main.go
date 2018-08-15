@@ -18,24 +18,28 @@ func Producer() {
 		fmt.Println("NewProducer", err)
 		panic(err)
 	}
+	channelMap := make(map[string]chan string)
+	channelMap["delete.device.pc"] = make(chan string, 1000)
+	channelMap["delete.device.mobile"] = make(chan string, 1000)
+	redisClient.SubscribeMessage(channelMap)
 
-	Message := redisClient.SubscribeMessage()
-	go func() {
-		for {
-			select {
-			case message := <-Message:
-				//fmt.Println("---server go message----:", message)
-				//publish的时候，分发n个topic
-				//user.strategy.14519b4e-4418-491d-8368-14278bf615e6
-				if err := producer.Publish("user.strategy", []byte(message)); err != nil {
-					fmt.Println("Publish nsq err:", err)
-					panic(err)
+	for key, channel := range channelMap {
+		go func(key string, channel chan string) {
+			for {
+				select {
+				case message := <-channel:
+					//fmt.Println("---server go message----:", message)
+					//publish的时候，分发n个topic
+					//user.strategy.14519b4e-4418-491d-8368-14278bf615e6
+					if err := producer.Publish(key, []byte(message)); err != nil {
+						fmt.Println("Publish nsq err:", err)
+						panic(err)
+					}
 				}
 			}
-		}
-	}()
+		}(key, channel)
+	}
 }
-
 func main() {
 	//ConsumerA()
 	done := make(chan bool)
