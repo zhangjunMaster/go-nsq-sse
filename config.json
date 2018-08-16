@@ -1,0 +1,31 @@
+{
+    "delete.device.pc":{
+        "name": "removeDevice",
+        "eventID": "pushMessage"
+    },
+    "delete.device.mobile":{
+        "name": "removeDevice",
+        "eventID": "pushMessage"
+    }, 
+    "disable.user.pc":{
+        "name": "disableUser",
+        "eventID": "pushMessage"
+    }, 
+    "delete.user.pc":{
+        "name": "removeUser",
+        "eventID": "pushMessage"
+    }, 
+    "user.strategy.pc":{
+        "name": "pullVersion",
+        "eventID": "pushNotification"
+    }, 
+    "client.update.pc":{
+        "name": "removeDevice",
+        "eventID": "pushNotification"
+    }, 
+    "generalChannel.pc":{
+        "name": "pullGateway",
+        "eventID": "pushNotification"
+
+    }
+  }

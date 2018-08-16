@@ -1,7 +1,8 @@
 package consumer
 
 import (
-	"fmt"
+	"encoding/json"
+	"io/ioutil"
 )
 
 /**
@@ -14,30 +15,36 @@ import (
 * 而其他地方没有for则是执行一遍就不执行，例如 select {} 如果没有for在最外层就是只能执行一遍
  */
 
-func (b *Broker) channleFunc() map[string]func(chanK string, msg string, clientChan chan string, comUDId string) {
-	channelFuncMap := make(map[string]func(chanK string, msg string, clientChan chan string, comUDId string))
-	channelFuncMap["delete.device.pc"] = deleteDevicePc
-	channelFuncMap["delete.device.mobile"] = deleteDeviceMobile
-	channelFuncMap["disable.user.pc"] = deleteDevicePc
-	channelFuncMap["delete.user.pc"] = deleteDevicePc
-	channelFuncMap["user.strategy.pc"] = deleteDevicePc
-	channelFuncMap["client.update.pc"] = deleteDevicePc
-	channelFuncMap["generalChannel.pc"] = generalChannelPc
-	return channelFuncMap
+func parseConfig() (map[string]map[string]string, error) {
+	var result map[string]map[string]string
+	data, err := ioutil.ReadFile("../config.json")
+	if err != nil {
+		return nil, err
+	}
+
+	//读取的数据为json格式，需要进行解码
+	err = json.Unmarshal(data, &result)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 func (b *Broker) monitorChannel() {
-	channelFuncMap := b.channleFunc()
+	config, err := parseConfig()
+	if err != nil {
+		panic(err)
+	}
 	for channelKey, channel := range b.Channles {
 		go func(channel chan string, channelKey string) {
 			for msg := range channel {
 				// key:delete.device.pc msg:message
-				fmt.Println("----key:", channelKey, "----msg:", msg)
 				for messageChan, clientKey := range b.Clients {
-					// key 建立连接的
-					fmt.Println("---Clients key", clientKey)
+					// clientKey 建立连接中带的东西
 					//messageChan <- msg
-					channelFuncMap[channelKey](channelKey, msg, messageChan, clientKey)
+					//考虑到并发，不能new一个object,只采用了传参的方法，所以使用了map
+					brokerMessage := BrokerMessage{ChannelKey: channelKey, Msg: msg, ClientKey: clientKey, MessageChan: messageChan, Config: &config}
+					go brokerMessage.pushMessage()
 				}
 			}
 		}(channel, channelKey)
