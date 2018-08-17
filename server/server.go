@@ -1,32 +1,25 @@
 /**
-1.Consumer: 消费者监听topic,channle.当有信息时，Consumer的consumer.AddHandler(&ConsumerHandler{b})，会调用
-  (c *ConsumerHandler) HandleMessage，将信息传给 b.Messages
-
-
-2.ServeHTTP中将messageChan给b,在Start中放message到b,在ServeHTTP的另外一个go goroutine中取信息
-	1.建立长连接，messageChan := make(chan string) 空的messageChan给b.NewClients
-	2.start 函数， 采用go func + for{} => s := <-b.NewClients 遍历的时候，如果发现有空的messageChan，则显示建立连接
-	3.并同时将这个空的messageChan，挂在clients map上
-	4.start函数中监听 b.Messages channle, 根据message的信息和clients中messageChan的key做条件对比，符合条件
-	  将 messageChan <- Messages
-	5.ServeHTTP中监听messageChan channle,如果有数据就发送
-
-3.  Clients    放：map  UserId和messageChan,根据UserId判断是否将信息 messageChan <- message
-	NewClients 放messageChan， 然后将messageChan给clients，组合形成map
-	Messages   放给客户端的信息
-	UserId     放客户端的id，用于匹配clients中map，因为message中会有UserId
+1.Consumer: consumers listen to topic,channle. When there is information, Consumer's ConsumerHandler (&ConsumerHandler{b}) will be called
+(c *ConsumerHandler) HandleMessage, passing the information to b.Messages
+2. Give messageChan to b in ServeHTTP, put message to b in Start, and get information in another go goroutine of ServeHTTP
+	1. Establish long connection, messageChan := make(chan string) empty messageChan to b.NewClients
+	2. Start function, use go func + for{} => s := < -b.n ewClients when traversing, if free messageChan is found, the connection is established
+	3. Hang this empty messageChan on clients map at the same time
+	4. Start function listens for b.Messages channle, which is qualified according to the information of message and the key of messageChan in clients
+Will messageChan < - Messages
+	5. Listen to messageChan channle in ServeHTTP and send if there is data
+3. Clients put: map UserId and messageChan, and judge whether the information is messageChan < -message based on the UserId
+NewClients puts messageChan and then gives messageChan to clients, which is combined to form a map
+Messages is sent to the client
+The UserId puts the client's id to match the map in clients because there will be a UserId in the message
+// this file is to make a long connection, and then take the information from NSQ
+// the system flow chart, which is suitable for the use of go func(){}()
+//serveHttp returns information
+//messageChan <-> NewClients <-> Clients sets up a concatenated client, again using a map
+// messages < - channle < - NSQ
+// when taking, goroutine takes channel as the standard
+// the collection of goroutine sent to client is based on channel
 */
-//这个文件是建立长连接，然后从nsq中拿信息
-//本系统流程图，并发多个情况下适合用go func(){}()
-//serveHttp返回信息
-//   ^
-//messageChan <-> NewClients <-> Clients 建立连接对应的client,还是用的map
-//   								^
-//								 messages<-channle<- nsq
-
-// 取的时候，goroutine 以channel为标准
-// 向client发的收 goroutine 以channel为标准
-
 package main
 
 import (
@@ -49,7 +42,7 @@ func main() {
 		make([]string, 0),
 	}
 	// Start processing events
-	// Start会产生一个goroutine，这个goroutine会监听各个channel的数据
+	// Start will produce a goroutine, which will listen to the data on each channel
 
 	b.Start()
 	go func() {

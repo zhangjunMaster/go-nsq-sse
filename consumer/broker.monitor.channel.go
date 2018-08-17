@@ -6,13 +6,13 @@ import (
 )
 
 /**
-* 从channel拿数据返回成client
-* 遍历监听的channels
-* 针对每个channel 遍历里面的信息，每个chanel
-* 开一个goroutine的原因是因为里面有阻塞
-* 用 for range循环的原因是因为，for msg := range channle 只要channel 有数据就会
-* 一直执行，不用 再加 for {}
-* 而其他地方没有for则是执行一遍就不执行，例如 select {} 如果没有for在最外层就是只能执行一遍
+* take the data from the channel and return it to the client
+* traverse the channels being monitored
+* for each channel to traverse the information inside, each chanel
+* the reason for opening a goroutine is because there is a blockage inside
+* the reason for using the for range loop is because for MSG := range channle as long as the channel has data
+* always execute, no need to add for {}
+* if there is no for elsewhere, it is executed once and not executed, such as select {} if there is no for in the outermost layer, it can only be executed once
  */
 
 func parseConfig() (map[string]map[string]string, error) {
@@ -22,7 +22,7 @@ func parseConfig() (map[string]map[string]string, error) {
 		return nil, err
 	}
 
-	//读取的数据为json格式，需要进行解码
+	// json to map
 	err = json.Unmarshal(data, &result)
 	if err != nil {
 		return nil, err
@@ -40,9 +40,8 @@ func (b *Broker) monitorChannel() {
 			for msg := range channle {
 				// key:delete.device.pc msg:message
 				for messageChan, clientKey := range b.Clients {
-					// clientKey 建立连接中带的东西
+					// clientKey is the params in the connection
 					//messageChan <- msg
-					//考虑到并发，不能new一个object,只采用了传参的方法，所以使用了map
 					brokerMessage := BrokerMessage{ChannelKey: channelKey, Msg: msg, ClientKey: clientKey, MessageChan: messageChan, Config: &config}
 					go brokerMessage.pushMessage()
 				}

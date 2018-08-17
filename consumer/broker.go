@@ -17,9 +17,9 @@ type Broker struct {
 	ChannleTopics  []string
 }
 
-// start是开启一个goroutine,遍历 b.clients这个map，一旦有message则将message给
-// b.clients中的channel
-// start是存信息到channel中
+// Start is to open a goroutine, traverse the map of b.clients,
+//and give the message to the channel in b.clients once there is a message
+
 func (b *Broker) Start() {
 	b.ChannleTopics = []string{
 		"delete.device.pc", "delete.device.mobile",
@@ -52,25 +52,26 @@ func (b *Broker) Start() {
 	}()
 }
 
-//建立连接，没建立一个连接，创建一个messageChan
+//Establish a connection, and create a messageChan for each connection
 func (b *Broker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	userId := strings.TrimPrefix(r.URL.Path, "/client/v3/push/register/")
 	log.Println("client key:", userId)
 	// Make sure that the writer supports flushing.
-	// http.Flusher是接口，w.(http.Flusher) 判断是否符合这个接口
+	// http.Flusher is interface，w.(http.Flusher) assertions
+
 	f, ok := w.(http.Flusher)
 	if !ok {
 		http.Error(w, "Streaming unsupported!", http.StatusInternalServerError)
 		return
 	}
 	messageChan := make(chan string)
-	//将messageChan给b,在start中放message,在另外一个go goroutine中取信息
+	//Send messageChan to b, put message in start, and get the message in another go goroutine
 	b.NewClients <- messageChan
 	b.UserId <- userId
 
 	notify := w.(http.CloseNotifier).CloseNotify()
-	//监听是否断开连接
+	//Listen to if the connection is broken
 	go func() {
 		<-notify
 		// Remove this client from the map of attached Clients when `EventHandler` exits.
@@ -78,7 +79,7 @@ func (b *Broker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		log.Println("HTTP connection just closed.")
 	}()
 
-	//是建立sse的基础，设置头部信息
+	//Establish the foundation of sse and set the header information
 	w.Header().Set("Content-Type", "text/event-stream")
 	w.Header().Set("Cache-Control", "no-cache")
 	w.Header().Set("Connection", "keep-alive")
@@ -89,8 +90,6 @@ func (b *Broker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 		go func(msg string) {
-			//将信息返回到客户端
-			//fmt.Fprintf(w, "data: Message: %s\n\n", msg)
 			json.NewEncoder(w).Encode(msg)
 			// Flush the response.  This is only possible if the repsonse supports streaming.
 			f.Flush()

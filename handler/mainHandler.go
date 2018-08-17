@@ -7,7 +7,6 @@ import (
 	"net/http"
 )
 
-// 返回template的Handler
 func MainPageHandler(w http.ResponseWriter, r *http.Request) {
 	if r.URL.Path != "/" {
 		w.WriteHeader(http.StatusNotFound)

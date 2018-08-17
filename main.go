@@ -1,6 +1,6 @@
 package main
 
-//这个文件是往nsp上推送消息,生产者
+// this file is for pushing messages to the NSP, the producer
 import (
 	"go-nsq-sse/redis-client"
 	"log"
@@ -8,9 +8,9 @@ import (
 	nsq "github.com/nsqio/go-nsq"
 )
 
-//生产者
+//producer
 //nsq.NewProducer func NewProducer(addr string, config *Config) (*Producer, error)
-//Producer 是一个struct，Publish是其方法
+//Producer is a struct，Publish is its method
 //1.redisClient.SubscribeMessage()
 func Producer(channels []string) {
 	producer, err := nsq.NewProducer("127.0.0.1:4150", nsq.NewConfig())
@@ -29,7 +29,7 @@ func Producer(channels []string) {
 				select {
 				case message := <-channle:
 					//fmt.Println("---server go message----:", message)
-					//publish的时候，分发n个topic
+					//when publish to topics
 					//user.strategy.14519b4e-4418-491d-8368-14278bf615e6
 					if err := producer.Publish(key, []byte(message)); err != nil {
 						log.Println("Publish nsq err:", err)
