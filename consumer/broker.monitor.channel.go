@@ -10,7 +10,7 @@ import (
 * 遍历监听的channels
 * 针对每个channel 遍历里面的信息，每个chanel
 * 开一个goroutine的原因是因为里面有阻塞
-* 用 for range循环的原因是因为，for msg := range channel 只要channel 有数据就会
+* 用 for range循环的原因是因为，for msg := range channle 只要channel 有数据就会
 * 一直执行，不用 再加 for {}
 * 而其他地方没有for则是执行一遍就不执行，例如 select {} 如果没有for在最外层就是只能执行一遍
  */
@@ -35,9 +35,9 @@ func (b *Broker) monitorChannel() {
 	if err != nil {
 		panic(err)
 	}
-	for channelKey, channel := range b.Channles {
-		go func(channel chan string, channelKey string) {
-			for msg := range channel {
+	for channelKey, channle := range b.Channles {
+		go func(channle chan string, channelKey string) {
+			for msg := range channle {
 				// key:delete.device.pc msg:message
 				for messageChan, clientKey := range b.Clients {
 					// clientKey 建立连接中带的东西
@@ -47,6 +47,6 @@ func (b *Broker) monitorChannel() {
 					go brokerMessage.pushMessage()
 				}
 			}
-		}(channel, channelKey)
+		}(channle, channelKey)
 	}
 }

@@ -26,6 +26,5 @@
     "generalChannel.pc":{
         "name": "pullGateway",
         "eventID": "pushNotification"
-
     }
   }

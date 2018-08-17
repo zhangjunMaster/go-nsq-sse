@@ -16,7 +16,7 @@ the server.
 
 Check out the repository from GitHub
 
-	git clone https://github.com/zhangjunMaster/go-nsq
+	git clone https://github.com/zhangjunMaster/go-nsq-sse
 
 ## Running
 

@@ -1,7 +1,7 @@
 package consumer
 
 import (
-	"fmt"
+	"encoding/json"
 	"log"
 	"net/http"
 	"strings"
@@ -38,11 +38,11 @@ func (b *Broker) Start() {
 					key := <-b.UserId
 					b.Clients[s] = key
 				}()
-				log.Println("Added new client")
+				log.Println("Added new client, total:", len(b.Clients)+1)
 			case s := <-b.DefunctClients:
 				delete(b.Clients, s)
 				close(s)
-				log.Println("Removed client")
+				log.Println("Removed client, total:", len(b.Clients)+1)
 			}
 		}
 	}()
@@ -56,7 +56,7 @@ func (b *Broker) Start() {
 func (b *Broker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	r.ParseForm()
 	userId := strings.TrimPrefix(r.URL.Path, "/client/v3/push/register/")
-	fmt.Println("UserId:", userId)
+	log.Println("client key:", userId)
 	// Make sure that the writer supports flushing.
 	// http.Flusher是接口，w.(http.Flusher) 判断是否符合这个接口
 	f, ok := w.(http.Flusher)
@@ -90,7 +90,8 @@ func (b *Broker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		go func(msg string) {
 			//将信息返回到客户端
-			fmt.Fprintf(w, "data: Message: %s\n\n", msg)
+			//fmt.Fprintf(w, "data: Message: %s\n\n", msg)
+			json.NewEncoder(w).Encode(msg)
 			// Flush the response.  This is only possible if the repsonse supports streaming.
 			f.Flush()
 		}(msg)
