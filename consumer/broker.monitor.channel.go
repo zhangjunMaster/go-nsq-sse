@@ -18,7 +18,7 @@ import (
 
 func parseConfig() (map[string]map[string]string, error) {
 	var result map[string]map[string]string
-	data, err := ioutil.ReadFile("../config.json")
+	data, err := ioutil.ReadFile("../channel.conf")
 	if err != nil {
 		return nil, err
 	}

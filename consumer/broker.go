@@ -7,6 +7,10 @@ import (
 	"strings"
 )
 
+const (
+	chanCap = 4000
+)
+
 type Broker struct {
 	Clients        map[chan string]string
 	NewClients     chan chan string
@@ -28,7 +32,7 @@ func (b *Broker) Start() {
 		"generalChannel.pc",
 	}
 	for _, v := range b.ChannleTopics {
-		b.Channles[v] = make(chan string, 10000)
+		b.Channles[v] = make(chan string, chanCap)
 	}
 	go func() {
 		for {
