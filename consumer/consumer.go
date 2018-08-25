@@ -3,7 +3,6 @@ package consumer
 // nsq建立连接，同时确定消费的是哪个topic,channle
 import (
 	"fmt"
-	"log"
 
 	nsq "github.com/nsqio/go-nsq"
 )
@@ -20,11 +19,10 @@ type ConsumerHandler struct {
 // each channle will have a new ConsumerHandler, channle is the name of this channle
 
 func (c *ConsumerHandler) HandleMessage(msg *nsq.Message) error {
-	log.Println("ConsumerHandler nsq.Message:", string(msg.Body))
 	go func(c *ConsumerHandler, msg *nsq.Message) {
 		channleKey := c.channle
 		// if it's not consumed, it blocks the channel
-		c.b.Channles[channleKey] <- string(msg.Body)
+		c.b.Channles[channleKey] <- (string(msg.Body))
 		//c.b.Messages <- string(msg.Body)
 	}(c, msg)
 	return nil

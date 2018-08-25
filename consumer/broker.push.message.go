@@ -2,7 +2,7 @@ package consumer
 
 import (
 	"encoding/json"
-	"fmt"
+	"log"
 	"strings"
 	"time"
 )
@@ -10,7 +10,7 @@ import (
 type Data struct {
 	Name      string            `json:"name"`
 	Content   map[string]string `json:"content"`
-	timeStamp time.Time         `json:"timeStamp"`
+	TimeStamp time.Time         `json:"timeStamp"`
 }
 
 type Message struct {
@@ -58,30 +58,33 @@ func (bm *BrokerMessage) createInfo() {
 }
 
 func (bm *BrokerMessage) pushMessage() {
-	fmt.Printf("%+v", bm)
+	log.Println("----pushMessage", bm.Msg, bm.ClientKey)
 	if bm.Msg != bm.ClientKey {
 		return
 	}
 	bm.createMessage()
 	message := bm.ClientMessage
+	log.Println("----message:", message)
 	structJson, _ := json.Marshal(message)
 	string := string(structJson)
+	log.Println("----string:", string)
 	bm.MessageChan <- string
 }
 
 // companyId.strategy:"companyId.strategy.userId1,companyId.strategy.userId2"
 func (bm *BrokerMessage) pushNotification() {
-	channelCID := strings.Split(bm.ChannelKey, "_")[0]
-	deviceId := strings.Split(bm.ChannelKey, "_")[2]
+	channelCID := strings.Split(bm.ClientKey, "_")[0]
+	userId := strings.Split(bm.ClientKey, "_")[1]
 	msgKey := strings.Split(bm.Msg, ":")[0]
 	msgV := strings.Split(bm.Msg, ":")[1]
+	if !strings.Contains(msgV, userId) {
+		return
+	}
 	msgCID := strings.Split(msgKey, ".")[0]
 	if channelCID != msgCID {
 		return
 	}
-	if !strings.Contains(msgV, deviceId) {
-		return
-	}
+
 	bm.createInfo()
 	message := bm.ClientMessage
 	structJson, _ := json.Marshal(message)

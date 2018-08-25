@@ -3,6 +3,7 @@ package consumer
 import (
 	"encoding/json"
 	"io/ioutil"
+	"log"
 )
 
 /**
@@ -43,7 +44,14 @@ func (b *Broker) monitorChannel() {
 					// clientKey is the params in the connection
 					//messageChan <- msg
 					brokerMessage := BrokerMessage{ChannelKey: channelKey, Msg: msg, ClientKey: clientKey, MessageChan: messageChan, Config: &config}
-					go brokerMessage.pushMessage()
+					method := config[channelKey]["eventID"]
+					if method == "pushMessage" {
+						log.Println("-----pushMessage")
+						go brokerMessage.pushMessage()
+					} else {
+						log.Println("-----pushNotification")
+						go brokerMessage.pushNotification()
+					}
 				}
 			}
 		}(channle, channelKey)

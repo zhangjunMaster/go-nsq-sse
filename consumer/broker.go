@@ -1,7 +1,7 @@
 package consumer
 
 import (
-	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -89,8 +89,11 @@ func (b *Broker) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			// If our messageChan was closed, this means that the client has disconnected.
 			break
 		}
+		fmt.Println("------msg:", msg)
 		go func(msg string) {
-			json.NewEncoder(w).Encode(msg)
+			n, err := fmt.Fprintf(w, "%s", msg)
+			fmt.Println("-----n, err:", n, err)
+			//json.NewEncoder(w).Encode(msg)
 			// Flush the response.  This is only possible if the repsonse supports streaming.
 			f.Flush()
 		}(msg)
