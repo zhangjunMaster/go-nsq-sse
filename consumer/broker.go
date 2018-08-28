@@ -2,6 +2,7 @@ package consumer
 
 import (
 	"fmt"
+	"go-nsq-sse/logger"
 	"log"
 	"net/http"
 	"strings"
@@ -25,6 +26,7 @@ type Broker struct {
 //and give the message to the channel in b.clients once there is a message
 
 func (b *Broker) Start() {
+	logger.LOG_DEBUG("Start Push Server")
 	b.ChannleTopics = []string{
 		"delete.device.pc", "delete.device.mobile",
 		"disable.user.pc", "delete.user.pc",
