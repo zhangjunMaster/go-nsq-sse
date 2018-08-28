@@ -38,6 +38,7 @@ Then point your web browser to `http://localhost:8001`.
 This code is based on 
 
 * Golang HTML5 SSE Example (https://github.com/kljensen/golang-html5-sse-example); 
+* logger https://github.com/fang2329/logger
 
 ## License (the Unlicense)
 
