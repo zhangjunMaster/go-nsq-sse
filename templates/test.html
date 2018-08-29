@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width">
+    <title>JS Bin</title>
+    <script>
+        function onload(){
+           // var source = new EventSource('http://192.168.2.118/client/v3/push/register/9000');
+           //      var source =  new EventSource('http://192.168.2.133:8080/events?deviceId=test001');
+            var source = new EventSource('http://localhost:80/client/v3/push/register/1006');
+            var div = document.getElementById('example');
+            // var source = new EventSource('http://192.168.3.32:8080/register/123456');
+            source.addEventListener('sseConnected', response => {
+                console.log("addEventListenser: " + response.data);
+
+            }, false);
+
+            source.onopen = function (event) {
+                div.innerHTML += event + '<p>Connection open ...</p>';
+                console.log("onOpen:" + event);
+            };
+
+            source.onerror = function (event) {
+                div.innerHTML += event + '<p>Connection close.</p>';
+                console.log("onerror : " +event);
+            };
+
+
+            source.onmessage = function (event) {
+                div.innerHTML += event + ('<p>Ping: ' + event.data + '</p>');
+                console.log("onMessage - sseConnected : " + event);
+            };
+
+
+        }
+
+    </script>
+</head>
+<body onload="onload()">
+<div id="example"></div>
+
+</body>
+</html>
+

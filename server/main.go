@@ -25,9 +25,13 @@ package main
 import (
 	"go-nsq-sse/consumer"
 	"go-nsq-sse/handler"
+	"log"
 	"net/http"
 	_ "net/http/pprof"
+	"time"
 )
+
+var t time.Time
 
 // Main routine
 //
@@ -39,8 +43,7 @@ func main() {
 		make(chan string),
 		make(chan string),
 		make(map[string]chan string),
-		make([]string, 0),
-	}
+		make([]string, 0)}
 	// Start processing events
 	// Start will produce a goroutine, which will listen to the data on each channel
 
@@ -50,5 +53,5 @@ func main() {
 	}()
 	http.Handle("/client/v3/push/register/", b)
 	http.Handle("/", http.HandlerFunc(handler.MainPageHandler))
-	http.ListenAndServe(":8001", nil)
+	log.Fatal(http.ListenAndServe(":8001", nil))
 }
